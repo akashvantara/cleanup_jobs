@@ -1,0 +1,29 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: wal-cleanup-cronjob
+  namespace: default
+spec:
+  schedule: "0 */6 * * *" # Every 6th hour
+  concurrencyPolicy: Replace
+  jobTemplate:
+    metadata:
+      labels:
+    spec:
+      activeDeadlineSeconds: 60
+      template:
+        metadata:
+          labels:
+        spec:
+          serviceAccountName: pod-list-sa
+          restartPolicy: OnFailure
+          containers:
+            - name: wal-cleanup-timescale-cronjob
+              image: bitnami/kubectl:latest
+              command:
+              - /bin/sh
+              - -c
+              args:
+              - |
+                kubectl exec -i -n observability-server timescale-timescaledb-0 -- bash -xc 'find /var/lib/postgresql/wal/pg_wal -type f -mtime +3 -exec ls {} \;'
+                #kubectl exec -i -n observability-server timescale-0 -- bash -xc 'find /var/lib/postgresql/wal/pg_wal -type f -mtime +3 -exec rm {} \;'
